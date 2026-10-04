@@ -20,6 +20,11 @@ descriptive statistics of Numeric sample data in collections that have included 
 * Descriptive Statistics
 * Quartiles
 
+For two-dimensional sample data (collections of `[x, y]` pairs) the gem
+additionally provides:
+* Halfspace Depth
+* Depth Region
+
 
 When requiring DescriptiveStatistics, the Enumerable module is monkey patched so
 that the statistical methods are available on any instance of a class that has included Enumerable. For example with an Array:
@@ -212,6 +217,44 @@ SomeServiceClass.calculate_something([1,2,3])
 #=> 0.816496580927726
 ```
 
+Two-dimensional sample data
+---------------------------
+
+For bivariate samples, given as collections of `[x, y]` pairs, the gem
+provides the Tukey (halfspace) depth, a centrality measure that makes no
+assumption about the shape (e.g. elliptical) of the sample distribution:
+```ruby
+require 'descriptive_statistics'
+data = [[0,0], [1,0], [1,1], [0,1]]
+data.halfspace_depth([0.5, 0.5])
+# => 2
+data.halfspace_depth([2, 2])
+# => 0
+```
+
+`halfspace_depth(point)` returns the minimum number of samples contained in
+any closed halfplane that contains `point`: a sample lying exactly on the
+boundary line of a halfplane is counted as belonging to that halfplane.
+Duplicate and collinear samples are supported, and the depth is invariant
+under affine transformations of the samples and the query point. Points
+outside the convex hull of the samples have depth 0.
+
+`depth_region(k)` returns the region of the plane where the depth is at
+least `k` as a `DescriptiveStatistics::DepthRegion`. The region is convex
+but may degenerate, so it is reported with a `kind` of `:polygon`,
+`:segment`, `:point` or `:empty` — degenerate regions are returned as
+segments or points, not as zero-area polygons. `vertices` holds the
+boundary vertices (counter-clockwise for polygons, the two endpoints for
+segments, the single location for points):
+```ruby
+data.depth_region(1)
+# => #<DescriptiveStatistics::DepthRegion :polygon [[0.0, 1.0], [0.0, 0.0], [1.0, 0.0], [1.0, 1.0]]>
+data.depth_region(2)
+# => #<DescriptiveStatistics::DepthRegion :point [[0.5, 0.5]]>
+[[0,0], [1,0], [2,0], [3,0]].depth_region(2)
+# => #<DescriptiveStatistics::DepthRegion :segment [[1.0, 0.0], [2.0, 0.0]]>
+```
+
 
 Ruby on Rails
 -------------
@@ -233,6 +276,7 @@ mean_age_in_dog_years = users.mean { |user| user.age / 7.0 } # => 2.775510204081
 Notes
 -----
 * All methods return a Float object except for `mode`, which will return a Numeric object from the collection. `mode` will always return nil for empty collections.
+* `halfspace_depth` returns an Integer count and `depth_region` returns a `DescriptiveStatistics::DepthRegion`; both return the empty collection default value (nil unless configured) for empty collections.
 * All methods return nil when the collection is empty, except for `number`, which returns 0.0. This is a different behavior than [ActiveSupport's Enumerable monkey patch of sum](http://apidock.com/rails/Enumerable/sum), which by deafult returns the Fixnum 0 for empty collections. You can change this behavior by specifying the default value returned for empty collections all at once:
   ```ruby
 require 'descriptive_statistics'
@@ -314,4 +358,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-
