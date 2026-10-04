@@ -143,6 +143,42 @@ total_price = cart.sum{ |i| i.price * i.quantity }
 # => 70.9
 ```
 
+Modified Band Depth
+-------------------
+
+For functional data you can rank several curves observed on the same grid by
+their modified band depth (Lopez-Pintado & Romo, 2009). A curve's depth is the
+proportion of valid (grid position, curve pair) combinations in which the curve
+falls inside the envelope spanned by two other curves:
+```ruby
+require 'descriptive_statistics'
+curves = [
+  [0.0, 1.0, 2.0, 3.0],
+  [3.0, 2.0, 1.0, 0.0],
+  [1.0, 1.0, 1.0, 1.0]
+]
+mbd = DescriptiveStatistics::ModifiedBandDepth.new(curves)
+mbd.depth_values
+# => [0.25, 0.25, 1.0]
+mbd.ranking
+# => [2, 0, 1]
+mbd.central_envelope(0.5)
+# => {:indices=>[2, 0], :lower=>[0.0, 1.0, 1.0, 1.0], :upper=>[1.0, 1.0, 2.0, 3.0]}
+```
+
+Missing observations are represented by nil and are never treated as zero. A
+(position, curve pair) combination only counts towards a curve's denominator
+when the curve itself and both curves of the pair are observed at that
+position. The exact numerator and denominator are exposed per curve:
+```ruby
+mbd.depths.map { |d| [d.index, d.inside, d.total, d.value] }
+# => [[0, 1, 4, 0.25], [1, 1, 4, 0.25], [2, 4, 4, 1.0]]
+```
+
+Ties in depth keep the original curve order (stable ranking), and
+central_envelope returns nil at positions where none of the selected central
+curves is observed.
+
 Note that you can extend DescriptiveStatistics on individual objects by
 requiring DescriptiveStatistics safely, thus avoiding the monkey patch. For example:
 ```ruby
@@ -314,4 +350,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-

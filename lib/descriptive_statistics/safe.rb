@@ -12,4 +12,4 @@ require 'descriptive_statistics/range.rb'
 require 'descriptive_statistics/descriptive_statistics.rb'
 require 'descriptive_statistics/stats.rb'
 require 'descriptive_statistics/class_methods.rb'
-
+require 'descriptive_statistics/band_depth.rb'
