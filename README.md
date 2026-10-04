@@ -213,6 +213,68 @@ SomeServiceClass.calculate_something([1,2,3])
 ```
 
 
+Distance Covariance and Correlation
+-----------------------------------
+
+Distance covariance and distance correlation measure dependence between two
+vector-valued variables, including nonlinear associations that Pearson
+correlation misses (for example y = x^2 on symmetric x, where Pearson is 0
+but distance correlation is clearly positive). The input is a collection of
+rows, one row per observed object, where each row is a pair of vectors. The
+two vectors of a pair may have different dimensions, and scalars are accepted
+as one-dimensional vectors.
+
+```ruby
+require 'descriptive_statistics'
+rows = [
+  [[0.0, 1.0], [0.0]],   # x is 2-dimensional, y is 1-dimensional
+  [[1.0, 0.0], [2.0]],
+  [[3.0, 3.0], [1.0]],
+  [[2.0, 1.0], [5.0]],
+  [[0.0, 0.0], [3.0]]
+]
+rows.distance_covariance            # biased (V-statistic) distance covariance
+rows.distance_covariance_squared    # its square
+rows.distance_correlation           # biased distance correlation in [0, 1]
+rows.distance_correlation_squared   # its square
+```
+
+Pass unbiased: true for the U-centered unbiased estimator of the *squared*
+distance covariance/correlation (requires at least 4 complete rows). The
+unbiased squared estimate can legitimately be negative; it is returned as-is
+and never clipped to zero. The non-squared methods then return a signed
+square root (negative when the underlying squared estimate is negative) so
+the sign is preserved:
+
+```ruby
+rows.distance_covariance_squared(unbiased: true)   # may be negative, returned as-is
+rows.distance_correlation(unbiased: true)          # signed square root, may be negative
+```
+
+A paired permutation test assesses whether the observed dependence is
+significant. The y-vectors are reshuffled across rows, the squared distance
+covariance is recomputed for each permutation, and the p-value is the
+(1 + exceedances) / (1 + permutations) fraction at least as extreme as the
+observed statistic. Pass seed: for a reproducible result:
+
+```ruby
+result = rows.distance_covariance_permutation_test(permutations: 999, seed: 42)
+result[:statistic]     # observed squared distance covariance
+result[:p_value]       # permutation p-value
+result[:permutations]  # 999
+result[:estimator]     # :biased (or :unbiased with unbiased: true)
+```
+
+Missing rows are handled explicitly via the missing: option. A row is
+incomplete when either vector is nil or empty, or contains nil or NaN
+elements. missing: :drop (the default) silently drops incomplete rows before
+computing; missing: :raise raises an ArgumentError listing the incomplete row
+indexes. Constant (degenerate) input yields a distance covariance and
+correlation of 0.0 and a permutation p-value of 1.0. All distance methods
+raise ArgumentError when fewer than 2 complete rows remain (4 for
+unbiased: true), when vector dimensions differ across rows, or when a row is
+not a pair of numeric vectors.
+
 Ruby on Rails
 -------------
 
