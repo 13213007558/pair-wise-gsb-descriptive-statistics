@@ -19,6 +19,7 @@ descriptive statistics of Numeric sample data in collections that have included 
 * Percentile Rank
 * Descriptive Statistics
 * Quartiles
+* Distance Covariance / Correlation
 
 
 When requiring DescriptiveStatistics, the Enumerable module is monkey patched so
@@ -230,6 +231,85 @@ mean_age = users.mean(&:age) # => 19.428571428571427
 mean_age_in_dog_years = users.mean { |user| user.age / 7.0 } # => 2.7755102040816326
 ```
 
+Distance Dependence
+-------------------
+Distance covariance and distance correlation measure dependence between two
+random vectors, even when the two sides have different dimensions or Pearson
+correlation is close to zero. Each input row represents one paired observation:
+the first element is the X vector and the second element is the Y vector. Plain
+Numeric values are treated as one-dimensional vectors.
+```ruby
+require 'descriptive_statistics/safe'
+
+pairs = [
+  [[0, 0], [0, 0, 0]],
+  [[1, 0], [1, 0, 0]],
+  [[2, 0], [2, 0, 0]],
+  [[3, 0], [3, 0, 0]]
+]
+
+DescriptiveStatistics.distance_covariance(pairs)
+# => 0.9013878188659973
+DescriptiveStatistics.distance_correlation(pairs)
+# => 1.0
+
+# The same call is available through the monkey patch or refinements:
+pairs.extend(DescriptiveStatistics).distance_correlation
+
+# Two zipped collections and blocks are also supported:
+DescriptiveStatistics.distance_covariance([0, 1, 2, 3], [0, 1, 2, 3])
+records = [{ :x => 0, :y => 0 }, { :x => 1, :y => 1 }]
+DescriptiveStatistics.distance_covariance(records) { |record| [record[:x], record[:y]] }
+```
+
+Use `distance_dependence_statistics` to get the ordinary sample estimates and
+the U-centered squared estimates together. The ordinary values are the usual
+nonnegative distance covariance and correlation, normalized by n squared. The
+`u_centered_squared_*` values use the U-centered inner-product normalization
+`n * (n - 3)`; the covariance and variance components are unbiased squared
+estimates. The squared correlation ratio is bias corrected rather than a
+guaranteed nonnegative quantity, so negative finite-sample values are returned
+as calculated and are never clipped to zero.
+```ruby
+DescriptiveStatistics.distance_dependence_statistics(pairs)
+# => {
+#      :distance_covariance => ...,
+#      :distance_correlation => ...,
+#      :squared_distance_covariance => ...,
+#      :squared_distance_correlation => ...,
+#      :u_centered_squared_distance_covariance => ...,
+#      :u_centered_squared_distance_correlation => ...,
+#      ...
+#    }
+
+DescriptiveStatistics.distance_covariance(pairs, :estimator => :u_centered_squared)
+DescriptiveStatistics.distance_correlation(pairs, :estimator => :u_centered_squared)
+```
+
+By default, `missing_rows: :complete_rows` drops a paired row when either side
+contains `nil` or `Float::NAN`, and reports the number dropped as
+`:dropped_rows`. Use `missing_rows: :raise` to reject missing rows instead.
+Non-finite values other than NaN, non-Numeric values, empty vectors, and
+within-side dimension changes always raise `ArgumentError`. The ordinary
+estimator requires at least two complete rows; the U-centered estimator
+requires at least four.
+
+For a paired permutation test, complete Y vectors are permuted while X rows
+remain fixed. The default statistic is `:u_centered_squared`; pass
+`estimator: :sample` to use the ordinary (square-root scale) distance
+covariance. The Monte Carlo p value includes the observed ordering as
+`(exceedances + 1) / (repetitions + 1)`.
+Provide `seed:` for reproducibility, or any object responding to `rand(maximum)`
+as `random:`.
+```ruby
+DescriptiveStatistics.distance_covariance_test(
+  pairs,
+  :repetitions => 999,
+  :seed => 1234
+)
+# => { :statistic => ..., :p_value => ..., :repetitions => 999, ... }
+```
+
 Notes
 -----
 * All methods return a Float object except for `mode`, which will return a Numeric object from the collection. `mode` will always return nil for empty collections.
@@ -314,4 +394,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-
