@@ -19,6 +19,7 @@ descriptive statistics of Numeric sample data in collections that have included 
 * Percentile Rank
 * Descriptive Statistics
 * Quartiles
+* Modified Band Depth and Central Curve Envelope
 
 
 When requiring DescriptiveStatistics, the Enumerable module is monkey patched so
@@ -49,6 +50,13 @@ data.mode
 # => 2
 data.range
 # => 8
+curves = [[-1, 4, -1], [4, -1, 4], [1, 1, 1]]
+curves.modified_band_depth
+# => [0.0, 0.0, 1.0]
+curves.modified_band_depth_order
+# => [2, 0, 1]
+curves.central_envelope(proportion: 0.5)
+# => [[-1, 1, -1], [1, 4, 1]]
 data.descriptive_statistics
 # => {:number=>11.0,
   :sum=>54,
@@ -64,6 +72,16 @@ data.descriptive_statistics
   :q2=>5.0,
   :q3=>7.0}
 ```
+
+`modified_band_depth` treats each array as a curve on one common grid. For each curve,
+every pair of the other curves forms a band, and the pair's depth is the proportion of
+grid positions where the target curve lies within that band. A position is included in
+the denominator only when the target and both band curves have a non-`nil`, non-`NaN`
+value; missing values are never treated as zero. Bands with no valid positions do not
+contribute to the curve's mean depth, and curves without a usable band return `nil`.
+`modified_band_depth_order` returns original indices with ties kept in input order. The
+central envelope is the pointwise lower and upper envelope of the deepest curves, with
+the count rounded up from `proportion * number_of_ranked_curves`.
 
 and with other types of objects:
 ```ruby
