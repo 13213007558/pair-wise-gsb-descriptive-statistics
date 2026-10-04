@@ -212,6 +212,42 @@ SomeServiceClass.calculate_something([1,2,3])
 #=> 0.816496580927726
 ```
 
+Two-dimensional halfspace depth
+-------------------------------
+
+For bivariate data the gem provides Tukey's halfspace depth, a centrality
+measure that does not assume any particular (e.g. elliptical) distribution
+shape. It lives in its own namespace and works on arrays of [x, y] points.
+Duplicate points and collinear samples are fully supported, and all
+computation is exact (coordinates are converted to rationals internally).
+```ruby
+require 'descriptive_statistics/safe'
+points = [[0, 0], [4, 0], [4, 4], [0, 4]]
+
+DescriptiveStatistics::HalfspaceDepth.depth(points, [2, 2])
+# => 0.5
+DescriptiveStatistics::HalfspaceDepth.depth_count(points, [2, 2])
+# => 2
+```
+
+Boundary convention: halfplanes are closed, so a sample point lying exactly
+on the boundary line counts towards the halfplane. Consequently every sample
+point has depth at least 1/n, and `depth` returns nil for an empty sample.
+
+`depth_region` returns the set of points whose depth is at least k. An
+Integer k is a depth count (1..n); a Float or Rational in (0, 1] is a
+normalized depth. The result is a DepthRegion whose `type` is :polygon,
+:segment, :point or :empty — degenerate regions are reported as segments or
+points rather than being padded into zero-area polygons:
+```ruby
+DescriptiveStatistics::HalfspaceDepth.depth_region(points, 1)
+# => #<DescriptiveStatistics::HalfspaceDepth::DepthRegion type=:polygon vertices=[[0.0, 0.0], [4.0, 0.0], [4.0, 4.0], [0.0, 4.0]]>
+DescriptiveStatistics::HalfspaceDepth.depth_region(points, 2)
+# => #<DescriptiveStatistics::HalfspaceDepth::DepthRegion type=:point vertices=[[2.0, 2.0]]>
+DescriptiveStatistics::HalfspaceDepth.depth_region([[0, 0], [1, 0], [2, 0], [3, 0]], 2)
+# => #<DescriptiveStatistics::HalfspaceDepth::DepthRegion type=:segment vertices=[[1.0, 0.0], [2.0, 0.0]]>
+```
+
 
 Ruby on Rails
 -------------
@@ -314,4 +350,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-
