@@ -277,6 +277,41 @@ DescriptiveStatistics.mean_empty_collection_default_value = 0.0
 
 Ports
 -----
+Turnbull NPMLE for censored data
+--------------------------------
+When observations are censored — an event is only known to have happened at
+or before some check (left censoring), at or after some check (right
+censoring), somewhere between two checks (interval censoring), or exactly —
+the overall distribution can be estimated with Turnbull's nonparametric
+maximum likelihood estimator (NPMLE). Each observation is an interval with
+explicitly declared open/closed endpoints:
+
+```ruby
+require 'descriptive_statistics'
+
+observations = [
+  DescriptiveStatistics::Turnbull.exact(2.0),                                          # observed at 2.0
+  DescriptiveStatistics::Turnbull.interval(1.0, 3.0, left_closed: false),              # in (1.0, 3.0]
+  DescriptiveStatistics::Turnbull.left_censored(1.5),                                  # at or before 1.5
+  DescriptiveStatistics::Turnbull.right_censored(4.0, closed: false)                   # strictly after 4.0
+]
+
+fit = DescriptiveStatistics::Turnbull.new(observations).fit
+fit.support        # maximal support intervals with their probability masses
+fit.log_likelihood # maximized log likelihood
+fit.diagnostics    # iteration count, convergence flag, likelihood trace, ...
+fit.cdf(2.5)       # => lower..upper range of achievable CDF values
+```
+
+The likelihood identifies only the total probability mass of each maximal
+support interval, not where that mass sits inside the interval, so the mass
+is reported on the whole interval rather than being arbitrarily placed (for
+example at the midpoint). As a result, cdf(x) returns a range: the bounds
+coincide unless x falls inside a support interval. With only exact
+observations the estimator degenerates to the empirical distribution.
+
+Ports
+-----
 [Javascript](http://github.com/FGRibreau/descriptive_statistics)
 
 [Python](http://github.com/gleicon/py_descriptive_statistics)
@@ -314,4 +349,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-

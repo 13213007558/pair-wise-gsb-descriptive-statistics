@@ -10,6 +10,6 @@ require 'descriptive_statistics/percentile.rb'
 require 'descriptive_statistics/percentile_rank.rb'
 require 'descriptive_statistics/range.rb'
 require 'descriptive_statistics/descriptive_statistics.rb'
+require 'descriptive_statistics/turnbull.rb'
 require 'descriptive_statistics/stats.rb'
 require 'descriptive_statistics/class_methods.rb'
-
