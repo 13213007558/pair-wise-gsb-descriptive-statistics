@@ -17,6 +17,7 @@ descriptive statistics of Numeric sample data in collections that have included 
 * Standard Deviation
 * Percentile
 * Percentile Rank
+* Hartigan Dip Statistic
 * Descriptive Statistics
 * Quartiles
 
@@ -64,6 +65,54 @@ data.descriptive_statistics
   :q2=>5.0,
   :q3=>7.0}
 ```
+
+Hartigan's dip statistic measures multimodality directly from the sorted
+sample and the empirical distribution's greatest convex minorant (GCM) and
+least concave majorant (LCM). It does not choose a histogram bin count or fit
+a KDE bandwidth:
+```ruby
+require 'descriptive_statistics'
+result = [1, 1, 2, 2].hartigan_dip
+result[:dip]
+# => 0.25
+result[:modal_interval]
+# => [2.0, 2.0]
+result[:gcm_indices]
+# => [4, 3]
+result[:lcm_indices]
+# => [3, 4]
+result[:gcm_contact_points]
+# => [[2.0, 0.75], [2.0, 0.5]]
+result[:lcm_contact_points]
+# => [[2.0, 0.75], [2.0, 1.0]]
+```
+`gcm_contact_points` and `lcm_contact_points` are the final modal-interval
+boundary contacts in sample/empirical-distribution coordinates. The indices are
+1-based positions in the sorted sample.
+
+With the backwards-compatible convention (`min_is_zero = false`), the minimum
+dip for a nonconstant sample is `1/(2n)`. This also applies when fewer than
+four observations are present. An all-equal sample consequently has the same
+minimum `1/(2n)`; pass `true` as the second argument to use zero for such
+degenerate samples. With fewer than two observations, the reported minimum is
+`1/(2n)` under the default convention and zero when `min_is_zero` is true.
+An empty collection follows this gem's usual default and returns `nil`.
+
+For a conditional uniform null hypothesis, provide both the simulation count
+and a random source so results are reproducible. The returned standard error is
+the Monte Carlo binomial standard error `sqrt(p(1-p)/B)`, not uncertainty in the
+observed dip statistic:
+```ruby
+random = Random.new(12345)
+result = data.hartigan_dip(false, 2000, random)
+result[:p_value]
+result[:simulations]
+# => 2000
+result[:simulation_standard_error]
+```
+The statistic is unchanged by translation or positive scaling. Reflection
+leaves the numeric dip unchanged and transforms the modal interval by the same
+reflection.
 
 and with other types of objects:
 ```ruby
@@ -314,4 +363,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-
