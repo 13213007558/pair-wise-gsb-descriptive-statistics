@@ -19,6 +19,37 @@ descriptive statistics of Numeric sample data in collections that have included 
 * Percentile Rank
 * Descriptive Statistics
 * Quartiles
+* Turnbull NPMLE for censored data
+
+Turnbull nonparametric maximum likelihood estimation is available for mixtures
+of exact, left-censored, right-censored, and interval-censored observations.
+Endpoint inclusion is explicit, so interval-censored records can distinguish
+`(a,b)`, `(a,b]`, `[a,b)`, and `[a,b]`.
+
+```ruby
+require 'descriptive_statistics'
+
+records = [
+  {type: :exact, value: 1.0},
+  {type: :left, value: 2.0, right_closed: true},
+  {type: :right, value: 2.0, left_closed: false},
+  {type: :interval, lower: 1.0, upper: 3.0, left_closed: false, right_closed: true}
+]
+
+fit = DescriptiveStatistics::TurnbullNpmle.new.fit(records)
+fit.support                 # maximal overlap sets with positive probability mass
+fit.probabilities           # probability for each support set
+fit.log_likelihood
+fit.iterations
+fit.active_set_iterations
+fit.kkt_residual
+fit.cdf_range(2.0)          # {:lower=>..., :upper=>...}
+fit.cdf(2.0)                # numeric only when F(2.0) is identified
+```
+
+Support mass belongs to the returned set as a whole. For a non-singleton
+interval, the within-interval location is not identified; it is not assigned to
+the midpoint.
 
 
 When requiring DescriptiveStatistics, the Enumerable module is monkey patched so
@@ -314,4 +345,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-
