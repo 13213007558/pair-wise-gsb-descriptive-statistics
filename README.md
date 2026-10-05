@@ -17,6 +17,7 @@ descriptive statistics of Numeric sample data in collections that have included 
 * Standard Deviation
 * Percentile
 * Percentile Rank
+* Hartigan Dip Statistic
 * Descriptive Statistics
 * Quartiles
 
@@ -213,6 +214,53 @@ SomeServiceClass.calculate_something([1,2,3])
 ```
 
 
+Hartigan Dip Statistic
+----------------------
+`hartigan_dip` computes Hartigan and Hartigan's dip directly from the sorted
+one-dimensional sample with the AS 217 greatest-convex-minorant /
+least-concave-majorant algorithm. It does not choose a histogram bin count or
+KDE bandwidth.
+
+```ruby
+require 'descriptive_statistics/safe'
+
+DescriptiveStatistics.hartigan_dip([1, 1, 2, 2])
+# => {
+#      statistic: 0.25,
+#      modal_interval: [2.0, 2.0],
+#      convex_lower_bound_contacts: [[2.0, 0.5], [2.0, 0.75]],
+#      concave_upper_bound_contacts: [[2.0, 0.75], [2.0, 1.0]]
+#    }
+```
+
+Contact points are `[x, cumulative_probability]` pairs. Convex-minorant points
+use the cumulative probability immediately before their jump, while
+concave-majorant points use the cumulative probability immediately after the
+jump. A single observation or an all-equal sample has no final GCM/LCM contact
+chain and returns empty contact arrays. The statistic is invariant under
+translation and positive proportional scaling; mirroring maps the two sets of
+contacts into each other with probabilities reflected around 0.5.
+
+Following the standard AS 217 convention, the minimum statistic is `1/(2n)`:
+one observation gives `0.5`, two observations give `0.25`, three observations
+give `1/6`, and four identical observations give `0.125`. Ties are processed as
+atoms of the empirical distribution rather than perturbed.
+
+Pass a positive `simulations` value to estimate a uniform-null Monte Carlo p
+value. Pass a `Random` instance as `random` for reproducibility; without one, a
+new system-seeded `Random` is used. `standard_error` is the binomial standard
+error `sqrt(p(1-p)/B)`, where `B` is the number of simulations.
+
+```ruby
+rng = Random.new(12345)
+DescriptiveStatistics.hartigan_dip(
+  [1, 1, 2, 2], simulations: 10_000, random: rng
+)
+# => { statistic: 0.25, ..., p_value: 0.0,
+#      simulations: 10000, standard_error: 0.0, random: rng }
+```
+
+
 Ruby on Rails
 -------------
 
@@ -314,4 +362,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-
